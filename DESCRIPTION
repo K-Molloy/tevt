@@ -1,11 +1,24 @@
 Package: tevt
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Threshold Methods for Extreme Value Theory
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Authors@R: person("Kieran", "Molloy", email = "k.molloy@lancs.ac.uk",
+                role = c("aut", "cre"))
+Description: Threshold Estimation methods for generalised Pareto Distributions (GPD), most are based upon reducing the bias of the GPD or minimising AMSE.
+Depends: R (>= 3.1.0)
+Imports:
+    Matrix,
+    graphics,
+    stats
+Suggests:
+    knitr,
+    devtools,
+    roxygen2,
+    testthat
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
+URL: https://github.com/K-Molloy/tevt/
+BugReports: https://github.com/K-Molloy/tevt/issues
+RoxygenNote: 7.1.1
+VignetteBuilder: knitr
