@@ -1,201 +1,341 @@
-#' gpd stuff
+findthresh <- function(data, ne) {
+  data <- rev(sort(as.numeric(data)))
+  data[ne] - min(min(abs(diff(data))[abs(diff(data)) > 0]), 1e-6)
+}
 
-#' Density, distribution function, quantile function and random number generation
-#' for the Generalized Pareto distribution with location, scale, and shape
-#' parameters.
+
+#' Parameter estimation for the Generalized Pareto Distribution (GPD)
 #'
-#' @name gpd
-#' @rdname gpd
-#' @param x Vector of observations.
-#' @param q Vector of quantiles.
-#' @param p Vector of probabilities.
-#' @param n Number of observations.
-#' @param loc,scale,shape Location, scale, and shape parameters. Can be vectors, but
-#' the lengths must be appropriate.
-#' @param log.d Logical; if TRUE, the log density is returned.
-#' @param lower.tail Logical; if TRUE (default), probabilities are P[X <= x], otherwise, P[X > x].
-#' @param log.p Logical; if TRUE, probabilities p are given as log(p).
-#' @references Brian Bader, Jun Yan. "eva: Extreme Value Analysis with Goodness-of-Fit Testing." R package version (2016)
+#' Fits exceedances above a chosen threshold to the Generalized Pareto model. Various estimation procedures can be used,
+#' including maximum likelihood, probability weighted moments, and maximum product spacing. It also allows
+#' generalized linear modeling of the parameters.
+#' @param data Data should be a numeric vector from the GPD.
+#' @param threshold A threshold value or vector of the same length as the data.
+#' @param nextremes Number of upper extremes to be used (either this or the threshold must be given, but not both).
+#' @param npp Length of each period (typically year). Is used in return level estimation. Defaults to 365.
+#' @param method Method of estimation - maximum likelihood (mle), maximum product spacing (mps), and
+#' probability weighted moments (pwm). Uses mle by default. For pwm, only the stationary model can be fit.
+#' @param information Whether standard errors should be calculated via observed or expected (default) information. For probability
+#' weighted moments, only expected information will be used if possible. For non-stationary models, only observed
+#' information is used.
+#' @param scalevars,shapevars A dataframe of covariates to use for modeling of the each parameter. Parameter
+#' intercepts are automatically handled by the function. Defaults to NULL for the stationary model.
+#' @param scaleform,shapeform An object of class `formula' (or one that can be coerced into that class), specifying the model
+#' of each parameter. By default, assumes stationary (intercept only) model. See details.
+#' @param scalelink,shapelink A link function specifying the relationship between the covariates and each parameter. Defaults to
+#' the identity function. For the stationary model, only the identity link should be used.
+#' @param start Option to provide a set of starting parameters to optim; a vector of scale and shape, in that order. Otherwise,
+#' the routine attempts to find good starting parameters. See details.
+#' @param opt Optimization method to use with optim.
+#' @param maxit Number of iterations to use in optimization, passed to optim. Defaults to 10,000.
+#' @param ... Additional arguments to pass to optim.
+#' @return A class object `gpdFit' describing the fit, including parameter estimates and standard errors.
+#' @details The base code for finding probability weighted moments is taken from the R package evir. See citation.
+#' In the stationary case (no covariates), starting parameters for mle and mps estimation are the probability weighted moment estimates.
+#' In the case where covariates are used, the starting intercept parameters are the probability weighted moment estimates from the
+#' stationary case and the parameters based on covariates are initially set to zero. For non-stationary parameters, the
+#' first reported estimate refers to the intercept term. Covariates are centered and scaled automatically to speed up optimization,
+#' and then transformed back to original scale. \cr
+#' Formulas for generalized linear modeling of the parameters should be given in the form `~ var1 + var2 + \eqn{\cdots}'. Essentially,
+#' specification here is the same as would be if using function `lm' for only the right hand side of the equation. Interactions,
+#' polynomials, etc. can be handled as in the `formula' class. \cr
+#' Intercept terms are automatically handled by the function. By default, the link functions are the identity function and
+#' the covariate dependent scale parameter estimates are forced to be positive. For some link function \eqn{f(\cdot)} and for
+#' example, scale parameter \eqn{\sigma}, the link is written as \eqn{\sigma = f(\sigma_1 x_1 + \sigma_2 x_2 + \cdots + \sigma_k x_k)}. \cr
+#' Maximum likelihood estimation and maximum product spacing estimation can be used in all cases. Probability weighted moments
+#' can only be used for stationary models.
 #' @examples
-#' dgpd(2:4, 1, 0.5, 0.01)
-#' dgpd(2, -2:1, 0.5, 0.01)
-#' pgpd(2:4, 1, 0.5, 0.01)
-#' qgpd(seq(0.9, 0.6, -0.1), 2, 0.5, 0.01)
-#' rgpd(6, 1, 0.5, 0.01)
+#' ## Fit data using the three different estimation procedures
+#' set.seed(7)
+#' x <- rgpd(2000, loc = 0, scale = 2, shape = 0.2)
+#' ## Set threshold at 4
+#' mle_fit <- gpd.fit(x, threshold = 4, method = "mle")
+#' pwm_fit <- gpd.fit(x, threshold = 4, method = "pwm")
+#' mps_fit <- gpd.fit(x, threshold = 4, method = "mps")
+#' ## Look at the difference in parameter estimates and errors
+#' mle_fit$par.ests
+#' pwm_fit$par.ests
+#' mps_fit$par.ests
 #'
-#' ## Generate sample with linear trend in location parameter
-#' rgpd(6, 1:6, 0.5, 0.01)
+#' mle_fit$par.ses
+#' pwm_fit$par.ses
+#' mps_fit$par.ses
 #'
-#' ## Generate sample with linear trend in location and scale parameter
-#' rgpd(6, 1:6, seq(0.5, 3, 0.5), 0.01)
+#' ## A linear trend in the scale parameter
+#' set.seed(7)
+#' n <- 300
+#' x2 <- rgpd(n, loc = 0, scale = 1 + 1:n / 200, shape = 0)
 #'
-#' p = (1:9)/10
-#' pgpd(qgpd(p, 1, 2, 0.8), 1, 2, 0.8)
-#' ## [1] 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9
+#' covs <- as.data.frame(seq(1, n, 1))
+#' names(covs) <- c("Trend1")
 #'
-#' ## Incorrect syntax (parameter vectors are of different lengths other than 1)
-#' # rgpd(1, 1:8, 1:5, 0)
+#' result1 <- gpd.fit(x2, threshold = 0, scalevars = covs, scaleform = ~ Trend1)
 #'
-#' ## Also incorrect syntax
-#' # rgpd(10, 1:8, 1, 0.01)
+#' ## Show summary of estimates
+#' result1
 #'
-#' @details The Generalized Pareto distribution function is given (Pickands, 1975)
-#' by \deqn{H(y) = 1 - \Big[1 + \frac{\xi (y - \mu)}{\sigma}\Big]^{-1/\xi}} defined
-#' on \eqn{\{y : y > 0, (1 + \xi (y - \mu) / \sigma) > 0 \}}, with location \eqn{\mu},
-#' scale \eqn{\sigma > 0}, and shape parameter \eqn{\xi}.
-#'
-#' @references Pickands III, J. (1975). Statistical inference using extreme order statistics. Annals of Statistics, 119-131.
-NULL
-
-#' @rdname gpd
+#' @references Pfaff, Bernhard, Alexander McNeil, and A. Stephenson. "evir: Extreme Values in R." R package version (2012): 1-7.
+#' @references Bader, Brian "eva: Extreme Value Analysis with Goodness-of-Fit Testing" R package version (2017) :
+#' @importFrom Matrix rankMatrix
 #' @export
-dgpd = function(x, loc = 0, scale = 1, shape = 0, log.d = FALSE) {
-  # density of the gpd
+gpd.fit <- function(data, threshold = NA, nextremes = NA, npp = 365, method = c("mle", "mps", "pwm"),
+                   information = c("expected", "observed"), scalevars = NULL, shapevars = NULL, scaleform = ~ 1,
+                   shapeform = ~ 1, scalelink = identity, shapelink = identity, start = NULL, opt = "Nelder-Mead",
+                   maxit = 10000, ...) {
+  data <- as.numeric(data)
+  n <- length(data)
+  method <- match.arg(method)
+  information <- match.arg(information)
+  if(is.na(nextremes) && is.na(threshold))
+    stop("Enter either a threshold or the number of upper extremes")
+  if(!is.na(nextremes) && !is.na(threshold))
+    stop("Enter EITHER a threshold or the number of upper extremes")
+  if(length(threshold) > 1)
+    if(length(threshold) != n)
+      stop("Threshold vector must be the same length as the data")
+  if(!is.null(scalevars))
+    if(nrow(scalevars) != n)
+      stop("Dimension of covariates does not match dimension of responses!")
+  if(!is.null(shapevars))
+    if(nrow(shapevars) != n)
+      stop("Dimension of covariates does not match dimension of responses!")
+  if(((scaleform != ~ 1) & is.null(scalevars)) | ((shapeform != ~ 1) & is.null(shapevars)))
+    stop("Need to specify covariates!")
+  if((!is.null(scalevars) | !is.null(shapevars)) & method == "pwm")
+    stop("Probability weighted moments can only be fitted for stationary data")
+  if(!is.na(nextremes))
+    threshold <- findthresh(data, nextremes)
 
-  # if any scale negative, throw error
-  if(min(scale) <= 0)
-    stop("Invalid scale")
+  exceedtrue <- data > threshold
+  exceedances <- data[exceedtrue]
+  excess <- (data - threshold)[exceedtrue]
+  Nu <- length(excess)
+  p.less.thresh <- 1 - Nu/n
 
-  # check shape
-  cond1 = (length(x) > 1) &
-    (((length(loc) != length(x)) & (length(loc) != 1)) |
-       ((length(scale) != length(x)) & (length(scale) != 1)) |
-       ((length(shape) != length(x)) & (length(shape) != 1)))
-  # check shape again
-  cond2 = (length(x) == 1) &
-    (length(unique(c(length(x), length(loc), length(scale), length(shape)))) > 2)
+  if(scaleform == ~ 1)
+    scalevars <- as.data.frame(rep(1, Nu))
 
-  # if shape incorrect, throw error
-  if(cond1 | cond2)
-    stop("Invalid parameter length!")
+  if(shapeform == ~ 1)
+    shapevars <- as.data.frame(rep(1, Nu))
 
-  # if 1-d, reshape
-  if(length(shape) == 1)
-    shape = rep(shape, max(length(x), length(loc), length(scale)))
+  scalevars.model <- model.matrix(scaleform, data = scalevars[exceedtrue, , drop = FALSE])
+  scalenames <- colnames(scalevars.model)
+  scalecheck <- adjScale(scalevars.model)
+  if((rankMatrix(scalevars.model)[1] < ncol(scalevars.model)) | (rankMatrix(scalevars.model)[1] > nrow(scalevars.model)))
+    stop("Scale design matrix is singular")
+  scalevars.model <- scalecheck$mat
+  scaletrans1 <- scalecheck$adjmeans
+  scaletrans2 <- scalecheck$adjvars
 
-  # calculate density
-  below.support = x < loc
-  x = pmax(x, loc)
-  x = ifelse(shape >= 0, x, pmin(x, (loc - scale/shape)))
-  w = (x - loc) / scale
-  log.density = -log(scale) - ifelse(shape == 0, w, ((1/shape) + 1) * log1p(w * shape))
-  log.density[is.nan(log.density) | is.infinite(log.density) | below.support] = -Inf
+  shapevars.model <- model.matrix(shapeform, data = shapevars[exceedtrue, , drop = FALSE])
+  shapenames <- colnames(shapevars.model)
+  shapecheck <- adjScale(shapevars.model)
+  if((rankMatrix(shapevars.model)[1] < ncol(shapevars.model)) | (rankMatrix(shapevars.model)[1] > nrow(shapevars.model)))
+    stop("Shape design matrix is singular")
+  shapevars.model <- shapecheck$mat
+  shapetrans1 <- shapecheck$adjmeans
+  shapetrans2 <- shapecheck$adjvars
 
-  # if exponential is wanted
-  if(!log.d)
-    log.density = exp(log.density)
+  trans1 <- c(scaletrans1, shapetrans1)
+  trans2 <- c(scaletrans2, shapetrans2)
 
-  # return density
-  log.density
+  scalevars.model.orig <- t((t(scalevars.model) * scaletrans2) + scaletrans1)
+  shapevars.model.orig <- t((t(shapevars.model) * shapetrans2) + shapetrans1)
+
+  xbar <- mean(excess)
+  a0 <- xbar
+  gamma <- -0.35
+  delta <- 0
+  pvec <- ((1:Nu) + gamma)/(Nu + delta)
+  a1 <- mean(sort(excess) * (1 - pvec))
+  shape0 <- 2 - a0/(a0 - 2 * a1)
+  scale0 <- (2 * a0 * a1)/(a0 - 2 * a1)
+
+  if(is.null(start)) {
+    scaleinit <- c(scale0, rep(0, ncol(scalevars.model) - 1))
+    shapeinit <- c(shape0, rep(0, ncol(shapevars.model) - 1))
+    init <- c(scaleinit, shapeinit)
+  } else {
+    init <- start
+  }
+
+  parnum <- c(ncol(scalevars.model), ncol(shapevars.model))
+
+  if(method == "pwm") {
+    denom <- Nu * (1 - 2 * shape0) * (3 - 2 * shape0)
+    if(shape0 > 0.5) {
+      denom <- NA
+      warning("Asymptotic standard errors not available for",
+              "PWM Method when shape > 0.5")
+    }
+    one <- (7 - 18 * shape0 + 11 * shape0^2 - 2 * shape0^3) * scale0^2
+    two <- (1 - shape0) * (1 - shape0 + 2 * shape0^2) * (2 - shape0)^2
+    cov <- scale0 * (2 - shape0) * (2 - 6 * shape0 + 7 * shape0^2 - 2 *
+                                      shape0^3)
+    varcov <- matrix(c(one, cov, cov, two), 2) / denom
+    par.ses <- sqrt(diag(varcov))
+    par.ests <- c(scale0, shape0)
+  }
+
+  negloglik <- function(vars, scalevars1, shapevars1, x) {
+    scale <- vars[1:length(scaleinit)]
+    shape <- vars[(length(scaleinit) + 1):length(vars)]
+    scalemat <- t(scale * t(scalevars1))
+    shapemat <- t(shape * t(shapevars1))
+    scalevec <- scalelink(rowSums(scalemat))
+    shapevec <- shapelink(rowSums(shapemat))
+    w <- x / scalevec
+    cond1 <- any(scalevec <= 0)
+    cond2 <- min(1 + w * shapevec) <= 0
+    log.density <- -log(pmax(scalevec, 0)) -
+      ifelse(shapevec == 0, w, ((1/shapevec) + 1) * log1p(pmax(w * shapevec, -1)))
+    log.density[(is.nan(log.density) | is.infinite(log.density))] <- 0
+    if(cond1 | cond2) {
+      abs(sum(log.density)) + 1e6
+    } else {
+      - sum(log.density)
+    }
+  }
+
+  mpsobj <- function(vars, scalevars1, shapevars1, x) {
+    scale <- vars[1:length(scaleinit)]
+    shape <- vars[(length(scaleinit) + 1):length(vars)]
+    scalemat <- t(scale * t(scalevars1))
+    shapemat <- t(shape * t(shapevars1))
+    scalevec <- scalelink(rowSums(scalemat))
+    shapevec <- shapelink(rowSums(shapemat))
+    w <- x / scalevec
+    cond1 <- any(scalevec <= 0)
+    cond2 <- min(1 + w * shapevec) <= 0
+    cdf <- ifelse(shapevec == 0, 1 - exp(-w), 1 - exp((-1/shapevec)*log1p(pmax(w * shapevec, -1))))
+    cdf[(is.nan(cdf) | is.infinite(cdf))] <- 0
+    cdf <- c(0, cdf, 1)
+    D <- diff(cdf)
+    cond3 <- any(D < 0)
+    ## Check if any differences are zero due to rounding and adjust
+    D <- ifelse(D <= 0, .Machine$double.eps, D)
+    if(cond1 | cond2 | cond3) {
+      abs(sum(log(D))) + 1e6
+    } else {
+      - sum(log(D))
+    }
+  }
+
+  if(method != "pwm") {
+    if(method == "mle") {
+      fit <- optim(init, negloglik, hessian = FALSE, method = opt, control = list(maxit = maxit, ...),
+                   scalevars1 = scalevars.model, shapevars1 = shapevars.model, x = excess)
+    } else {
+      excess.order <- order(excess)
+      excess.sort <- sort(excess)
+      scalevars.model.sort <- apply(scalevars.model, 2, function(x) x[excess.order])
+      shapevars.model.sort <- apply(shapevars.model, 2, function(x) x[excess.order])
+      scalevars.model.orig.sort <- apply(scalevars.model.orig, 2, function(x) x[excess.order])
+      shapevars.model.orig.sort <- apply(shapevars.model.orig, 2, function(x) x[excess.order])
+      fit <- optim(init, mpsobj, hessian = FALSE, method = opt, control = list(maxit = maxit, ...),
+                   scalevars1 = scalevars.model.sort, shapevars1 = shapevars.model.sort, x = excess.sort)
+    }
+
+    if(fit$convergence)
+      warning("optimization may not have succeeded")
+
+    scale.ests <- fit$par[1:length(scaleinit)] / scaletrans2
+    shape.ests <- fit$par[(length(scaleinit) + 1):length(fit$par)] / shapetrans2
+
+    scale.ests <- ifelse(scalecheck$truevars == 0, scale.ests - sum(scale.ests * scaletrans1), scale.ests)
+    shape.ests <- ifelse(shapecheck$truevars == 0, shape.ests - sum(shape.ests * shapetrans1), shape.ests)
+
+    par.ests <- c(scale.ests, shape.ests)
+
+    if((information == "observed") | (scaleform != ~ 1) | (shapeform != ~ 1)) {
+      if(method == "mle") {
+        varcov <- solve(optimHess(par.ests, negloglik, scalevars1 = scalevars.model.orig,
+                                  shapevars1 = shapevars.model.orig, x = excess))
+      } else {
+        varcov <- solve(optimHess(par.ests, mpsobj, scalevars1 = scalevars.model.orig.sort,
+                                  shapevars1 = shapevars.model.orig.sort, x = excess.sort))
+      }
+    } else {
+      varcov <- gpdFisher(Nu, par.ests)
+    }
+    par.ses <- sqrt(diag(varcov))
+  }
+
+  names(par.ests) <- c(paste('Scale', colnames(scalevars.model.orig), sep = ' '),
+                       paste('Shape', colnames(shapevars.model.orig), sep = ' '))
+
+  names(par.ses) <- names(par.ests)
+
+  par.sum <- data.frame(par.ests, par.ses, par.ests / par.ses, 2 * pnorm(abs(par.ests / par.ses), lower.tail = FALSE))
+  colnames(par.sum) <- c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+  par.sum$codes <- ifelse(par.sum[, 4] < 0.001, '***',
+                          ifelse(par.sum[, 4] < 0.01, '**',
+                                 ifelse(par.sum[, 4] < 0.05, '*',
+                                        ifelse(par.sum[, 4] < 0.1, '.', ' '))))
+  colnames(par.sum) <- c("Estimate", "Std. Error", "z value", "Pr(>|z|)", "")
+
+  if(method == "mle") {
+    out <- list(n = n, data = data, threshold = threshold, par.sum = par.sum,
+                exceedances = exceedances, n.exceed = Nu, converged = fit$convergence,
+                p.less.thresh = p.less.thresh, method = method, nllh.final = fit$value,
+                par.ests = par.ests, par.ses = par.ses, varcov = varcov,
+                parnum = parnum, links = list(scalelink, shapelink),
+                covars = list(scalevars.model.orig, shapevars.model.orig),
+                stationary = ((scaleform == ~ 1) & (shapeform == ~ 1)),
+                information = information, npp = npp, rate = 1 - p.less.thresh)
+  }
+
+  if(method == "mps") {
+    out <- list(n = n, data = data, threshold = threshold, par.sum = par.sum,
+                exceedances = exceedances, n.exceed = Nu, converged = fit$convergence,
+                p.less.thresh = p.less.thresh, method = method, moran = fit$value,
+                par.ests = par.ests, par.ses = par.ses, varcov = varcov,
+                parnum = parnum, links = list(scalelink, shapelink),
+                covars = list(scalevars.model.orig, shapevars.model.orig),
+                stationary = ((scaleform == ~ 1) & (shapeform == ~ 1)),
+                information = information, npp = npp, rate = 1 - p.less.thresh)
+  }
+
+  if(method == "pwm") {
+    out <- list(n = n, data = data, threshold = threshold, par.sum = par.sum,
+                exceedances = exceedances, n.exceed = Nu,
+                p.less.thresh = p.less.thresh, method = method,
+                par.ests = par.ests, par.ses = par.ses, varcov = varcov,
+                parnum = parnum, links = list(scalelink, shapelink),
+                covars = list(scalevars.model.orig, shapevars.model.orig),
+                stationary = TRUE, information = "expected", npp = npp,
+                rate = 1 - p.less.thresh)
+  }
+
+  class(out) <- "gpdFit"
+  out
 }
 
-#' @rdname gpd
+
+## S3 functions for class gpdFit
 #' @export
-pgpd = function(q, loc = 0, scale = 1, shape = 0, lower.tail = TRUE, log.p = FALSE) {
-  # distribution function of gpd
-
-  # break if any scale are negative
-  if(min(scale) <= 0)
-    stop("Invalid scale")
-
-  # do this bit
-  cond1 = (length(q) > 1) &
-    (((length(loc) != length(q)) & (length(loc) != 1)) |
-       ((length(scale) != length(q)) & (length(scale) != 1)) |
-       ((length(shape) != length(q)) & (length(shape) != 1)))
-
-  # do this bit too
-  cond2 = (length(q) == 1) &
-    (length(unique(c(length(q), length(loc), length(scale), length(shape)))) > 2)
-
-  # if cond1 or cond2 are false, some input is wrong length
-  if(cond1 | cond2)
-    stop("Invalid parameter length!")
-
-  # if the shape is 1-d, reshape it as 2d
-  if(length(shape) == 1)
-    shape = rep(shape, max(length(q), length(loc), length(scale)))
-
-  # calculate distribution
-  q = pmax(q, loc)
-  q = ifelse(shape >= 0, q, pmin(q, (loc - scale/shape)))
-  w = (q - loc) / scale
-  p = ifelse(shape == 0, 1 - exp(-w), 1 - exp((-1/shape)*log1p(w*shape)))
-
-  # if calculating tail
-  if(!lower.tail)
-    p = 1 - p
-  if(log.p)
-    p = log(p)
-
-  # return distribution function
-  p
+plot.gpd.fit <- function(x, ...) {
+  gpd.diag(x, ...)
 }
 
 
-
-#' @rdname gpd
 #' @export
-qgpd = function(p, loc = 0, scale = 1, shape = 0, lower.tail = TRUE, log.p = FALSE) {
-  # quantile function for gpd
-
-  # if probabilities are to be given as log(p)
-  if(log.p)
-    p = exp(p)
-  # if probabilities are not in bound [0,1] throw error
-  if((min(p, na.rm = TRUE) < 0) || (max(p, na.rm = TRUE) > 1))
-    stop("`p' must contain probabilities in (0,1)")
-
-  # if any scale negative, throw error
-  if(min(scale) <= 0)
-    stop("Invalid scale")
-
-  # if shape is wrong
-  cond1 = (length(p) > 1) &
-    (((length(loc) != length(p)) & (length(loc) != 1)) |
-       ((length(scale) != length(p)) & (length(scale) != 1)) |
-       ((length(shape) != length(p)) & (length(shape) != 1)))
-  cond2 = (length(p) == 1) &
-    (length(unique(c(length(p), length(loc), length(scale), length(shape)))) > 2)
-  # if shape is wrong throw error
-  if(cond1 | cond2)
-    stop("Invalid parameter length!")
-
-  # if probabilities are P[X\leqx], otherwise P[X>x]
-  if(lower.tail)
-    p = 1 - p
-  # if 1-d, reshape
-  if(length(shape) == 1)
-    shape = rep(shape, max(length(p), length(loc), length(scale)))
-
-  # if gpd shape = 0 (vectorisation is required)
-  ifelse(shape == 0, loc - scale * log(p), loc + scale * expm1(-shape * log(p)) / shape)
+print.gpd.fit <- function(x, ...) {
+  cat("Summary of fit:\n")
+  print(x$par.sum, digits = 5)
+  cat("---\nSignif. codes:  0 '***' 0.001 '*' 0.01 '*' 0.05 '.' 0.1 ' ' 1")
 }
 
 
-#' @rdname gpd
 #' @export
-rgpd = function(n, loc = 0, scale = 1, shape = 0) {
-  # random generation for gpd
-
-  # if any scale negative, throw error
-  if(min(scale) <= 0)
-    stop("Invalid scale")
-
-  # check shape
-  cond1 = (n > 1) &
-    (((length(loc) != n) & (length(loc) != 1)) |
-       ((length(scale) != n) & (length(scale) != 1)) |
-       ((length(shape) != n) & (length(shape) != 1)))
-  cond2 = (n == 1) &
-    (length(unique(c(n, length(loc), length(scale), length(shape)))) > 2)
-  # if shape incorrect, throw error
-  if(cond1 | cond2)
-    stop("Invalid parameter length!")
-
-  # run quantilefunction and return
-  qgpd(stats::runif(n), loc, scale, shape)
+logLik.gpd.fit <- function (object, ...) {
+  if(!missing(...))
+    warning("Extra arguments discarded")
+  if(object$method != "mle")
+    stop("Estimation method is not maximum likelihood")
+  val <- - object$nllh.final
+  attr(val, "nobs") <- object$n
+  attr(val, "df") <- sum(object$parnum)
+  class(val) <- "logLik"
+  val
 }
-
-
-
