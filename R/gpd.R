@@ -29,7 +29,7 @@
 #' ## Generate sample with linear trend in location and scale parameter
 #' rgpd(6, 1:6, seq(0.5, 3, 0.5), 0.01)
 #'
-#' p <- (1:9)/10
+#' p = (1:9)/10
 #' pgpd(qgpd(p, 1, 2, 0.8), 1, 2, 0.8)
 #' ## [1] 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9
 #'
@@ -143,7 +143,7 @@ qgpd = function(p, loc = 0, scale = 1, shape = 0, lower.tail = TRUE, log.p = FAL
   if(log.p)
     p = exp(p)
   # if probabilities are not in bound [0,1] throw error
-  if((min(p, na.rm = TRUE) <= 0) || (max(p, na.rm = TRUE) >= 1))
+  if((min(p, na.rm = TRUE) < 0) || (max(p, na.rm = TRUE) > 1))
     stop("`p' must contain probabilities in (0,1)")
 
   # if any scale negative, throw error
