@@ -26,7 +26,7 @@ The Alternative Hill Plot is just a normal Hill Plot scaled to the \code{[0,1]} 
 }
 \examples{
 data=rexp(500)
-gpd.plot.hill2(data)
+gpd.plot.hill2(data, conf.int=TRUE)
 }
 \references{
 Resnick, S. and Starica, C. (1997). Smoothing the Hill estimator. \emph{Advances in Applied Probability}, 271--293.

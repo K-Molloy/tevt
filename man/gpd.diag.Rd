@@ -4,7 +4,7 @@
 \alias{gpd.diag}
 \title{Diagnostic plots for a fit to the Generalized Pareto distribution}
 \usage{
-gpd.diag(z, conf = 0.95, method = c("delta", "profile"))
+gpd.diag(z, conf = 0.95, method = c("delta", "profile"), safe = FALSE)
 }
 \arguments{
 \item{z}{A class object returned from `gpdFit'.}
@@ -13,6 +13,8 @@ gpd.diag(z, conf = 0.95, method = c("delta", "profile"))
 
 \item{method}{The method to compute the return level confidence interval - either delta method (default) or
 profile likelihood. Choosing profile likelihood may be quite slow.}
+
+\item{safe}{Binary (default FALSE) For when plot margins are too large}
 }
 \value{
 For stationary models, provides return level, density, probability, and quantile plots for the GPD exceedances. The

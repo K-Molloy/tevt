@@ -10,6 +10,8 @@ test_that("output of dgpd", {
   set.seed(1)
   expect_equal(dgpd(2:4, 1, 0.5, 0.01), c(0.270652877, 0.038077000, 0.005560804), tolerance=1e-3)
   expect_equal(dgpd(2, -2:1, 0.5, 0.01), c(0.0008418422, 0.0055608042, 0.0380770002, 0.2706528769), tolerance=1e-3)
+  expect_equal(experimental.dgpd(2:4, 1, 0.5, 0.01), c(0.270652877, 0.038077000, 0.005560804), tolerance=1e-3)
+  #expect_equal(experimental.dgpd(2, -2:1, 0.5, 0.01), c(0.0008418422, 0.0055608042, 0.0380770002, 0.2706528769), tolerance=1e-3)
 })
 
 test_that("output of pgpd", {

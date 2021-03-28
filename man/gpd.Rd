@@ -6,7 +6,8 @@
 \alias{pgpd}
 \alias{qgpd}
 \alias{rgpd}
-\title{gpd stuff
+\alias{experimental.dgpd}
+\title{Generalised Pareto Distribution (GPD)
 Density, distribution function, quantile function and random number generation
 for the Generalized Pareto distribution with location, scale, and shape
 parameters.}
@@ -18,6 +19,8 @@ pgpd(q, loc = 0, scale = 1, shape = 0, lower.tail = TRUE, log.p = FALSE)
 qgpd(p, loc = 0, scale = 1, shape = 0, lower.tail = TRUE, log.p = FALSE)
 
 rgpd(n, loc = 0, scale = 1, shape = 0)
+
+experimental.dgpd(x, loc = 0, scale = 1, shape = 0, log.d = FALSE)
 }
 \arguments{
 \item{x}{Vector of observations.}
@@ -38,7 +41,7 @@ the lengths must be appropriate.}
 \item{n}{Number of observations.}
 }
 \description{
-gpd stuff
+Generalised Pareto Distribution (GPD)
 Density, distribution function, quantile function and random number generation
 for the Generalized Pareto distribution with location, scale, and shape
 parameters.

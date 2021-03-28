@@ -23,15 +23,72 @@ Adding the data to the current workspace
 data(danish)
 ```
 
+## Hill Plots
+
+The standard averaged hill plot
+```{r}
+gpd.plot.hill1(danish) 
+```
+Alternative Hill plot over the interval $[0,1]$ with confidence intervals
+```{r}
+gpd.plot.hill2(danish, conf.int = TRUE) 
+```
+QQ-Estimator Plot
+```{r}
+gpd.qq.est(danish)
+```
+
+
+
+## Double Bootstrap for OSF (Optimal Sample Fraction)
+An Implementation of the procedure proposed in Gomes et al. (2012) and Caeiro et al. (2016) for selecting the optimal sample fraction in tail index estimation.
+```{r gomes}
+gomes = gpd.gomes(danish)
+out = gpd.fit(danish, threshold=gomes$threshold)
+gpd.diag(out, safe=TRUE)
+```
+
+## Double Bootstrap for OSF (Optimal Sample Fraction)
+n Implementation of the procedure proposed in Danielsson et al. (2001) for selecting the optimal sample fraction in tail index estimation.
+```{r danielsson}
+danielsson = gpd.danielsson(danish)
+out = gpd.fit(danish, threshold=danielsson$threshold)
+gpd.diag(out, safe=TRUE)
+```
+
+## Single Bootstrap for OSF (Optimal Sample Fraction)
+An Implementation of the procedure proposed in Hall (1990) for selecting the optimal sample fraction in tail index estimation
+```{r hall}
+hall = gpd.hall(danish)
+out = gpd.fit(danish, threshold=hall$threshold)
+gpd.diag(out, safe=TRUE)
+```
+
+## Automated Approach for Hill-Plot
+An Implementation of the so called Eye-balling Technique proposed in Danielsson et al. (2016)
+```{r eye}
+eye = gpd.eye(danish)
+out = gpd.fit(danish, threshold=eye$threshold)
+gpd.diag(out, safe=TRUE)
+```
+
+## Fitting the Minimum Distance model
+Minimising the distance between the empirical tail and a theoretical Pareto tail with respect to k. An Implementation of the procedure proposed in Danielsson et al. (2016) for selecting the optimal threshold in extreme value analysis.
+```{r md}
+md = gpd.md(danish)
+out = gpd.fit(danish, threshold=md$threshold)
+gpd.diag(out, safe=TRUE)
+```
+
+## Old Vignette stuff
 Fitting the model
 ```{r}
-out <- gpd.fit(danish, threshold=50)
+out <- gpd.fit(danish, threshold=25)
 ```
 
 Cheap and easy diagnostic plots 
 At some point, this needs to override S3 plot function
 ```{r}
-par(mfrow=c(2,2))
 gpd.plot(out, pick=1)
 gpd.plot(out, pick=2)
 gpd.plot(out, pick=3)
@@ -39,7 +96,7 @@ gpd.plot(out, pick=3)
 ```
 Better diagnostic plots, differs whether model is stationary.
 ```{r}
-gpd.diag(out)
+gpd.diag(out, safe=TRUE)
 ```
 But each of these can be accessed independently using their associated function names
 ```{r}

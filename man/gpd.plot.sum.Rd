@@ -22,7 +22,7 @@ The sum plot is based on the plot \code{(k,S_k)} with \code{S_k:=k*gamma_k} wher
 }
 \examples{
 data(danish)
-sumplot(danish)
+gpd.plot.sum(danish)
 }
 \references{
 De Sousa, Bruno and Michailidis, George (2004). A diagnostic plot for estimating the tail index of a distribution. \emph{Journal of Computational and Graphical Statistics} \bold{13(4)}, 1--22.
