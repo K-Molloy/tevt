@@ -301,12 +301,12 @@ gpd.fit <- function(data, threshold = NA, nextremes = NA, npp = 365, method = c(
                 rate = 1 - p.less.thresh)
   }
 
-  class(out) <- "gpdFit"
+  class(out) <- "gpd.fit"
   out
 }
 
 
-## S3 functions for class gpdFit
+## S3 functions for class gpd.fit
 #' @export
 plot.gpd.fit <- function(x, ...) {
   gpd.diag(x, ...)
