@@ -305,6 +305,36 @@ gpd.fit <- function(data, threshold = NA, nextremes = NA, npp = 365, method = c(
   out
 }
 
+#' GPD Compute mle over a range of u
+#' @export
+gpd.fitu = function(data, umin, umax, nint = 10, ...){
+  m <- s <- up <- ul <- matrix(0, nrow = nint, ncol = 2)
+  u <- seq(umin, umax, length = nint)
+  for(i in 1:nint) {
+    z <- gpd.fit(data, u[i], ...)
+    m[i,  ] <- z$par.ests
+    m[i, 1] <- m[i, 1] - m[i, 2] * u[i]
+    d <- matrix(c(1,  - u[i]), ncol = 1)
+    v <- t(d) %*% z$varcov %*% d
+    s[i,  ] <- z$par.ses
+    s[i, 1] <- sqrt(v)
+    up[i,  ] <- m[i,  ] + 1.96 * s[i,  ]
+    ul[i,  ] <- m[i,  ] - 1.96 * s[i,  ]
+  }
+  names <- c("Modified Scale", "Shape")
+  oldpar <- par(mfrow = c(2, 1))
+  for(i in 1:2) {
+    um <- max(up[, i])
+    ud <- min(ul[, i])
+    plot(u, m[, i], ylim = c(ud, um), xlab = "Threshold", ylab =
+           names[i], type = "b")
+    for(j in 1:nint)
+      lines(c(u[j], u[j]), c(ul[j, i], up[j, i]), col=4)
+  }
+  par(oldpar)
+  invisible(list(thresholds=u, mle=m, se=s, ci.low=ul, ci.up=up))
+}
+
 
 ## S3 functions for class gpd.fit
 #' @export
