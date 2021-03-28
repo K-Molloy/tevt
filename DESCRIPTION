@@ -14,7 +14,8 @@ Suggests:
     knitr,
     devtools,
     roxygen2,
-    testthat
+    testthat,
+    rmarkdown
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

@@ -1,0 +1,57 @@
+---
+title: "danish-fire"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{danish-fire}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(tevt)
+```
+
+Adding the data to the current workspace
+```{r get-data}
+data(danish)
+```
+
+Fitting the model
+```{r}
+out <- gpd.fit(danish, threshold=50)
+```
+
+Cheap and easy diagnostic plots 
+At some point, this needs to override S3 plot function
+```{r}
+par(mfrow=c(2,2))
+gpd.plot(out, pick=1)
+gpd.plot(out, pick=2)
+gpd.plot(out, pick=3)
+#gpd.plot(out, pick=4)
+```
+Better diagnostic plots, differs whether model is stationary.
+```{r}
+gpd.diag(out)
+```
+But each of these can be accessed independently using their associated function names
+```{r}
+gpd.qq2(out)
+```
+
+```{r}
+gpd.hist(out)
+```
+
+```{r}
+gpd.rlPlot(out)
+```
+
+
