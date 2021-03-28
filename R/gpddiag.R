@@ -10,6 +10,7 @@
 #' @param conf Confidence level used in the return level plot.
 #' @param method The method to compute the return level confidence interval - either delta method (default) or
 #' profile likelihood. Choosing profile likelihood may be quite slow.
+#' @param safe Binary (default FALSE) For when plot margins are too large
 #' @examples
 #' \dontrun{
 #' x <- rgpd(10000, loc = 0.5, scale = 1, shape = 0.1)
@@ -25,7 +26,7 @@
 #' @references Modified from "eva : Extreme Value Analysis with Goodness-of-Fit Testing."
 #' @importFrom utils menu
 #' @export
-gpd.diag <- function(z, conf = 0.95, method = c("delta", "profile")) {
+gpd.diag <- function(z, conf = 0.95, method = c("delta", "profile"), safe=FALSE) {
   # make sure par returns to what it used to be
   oldpar <- par(no.readonly = TRUE)
   on.exit(par(oldpar))
@@ -35,6 +36,7 @@ gpd.diag <- function(z, conf = 0.95, method = c("delta", "profile")) {
   scalevec <- z$links[[1]](rowSums(t(z$par.ests[1:z$parnum[1]] * t(z$covars[[1]]))))
   shapevec <- z$links[[2]](rowSums(t(z$par.ests[(z$parnum[1] + 1):(z$parnum[1] + z$parnum[2])] * t(z$covars[[2]]))))
 
+  if (safe) par(mar=c(1,1,1,1))
   if(z$stationary){
     gpd.rlPlot(z, conf, method)
     gpd.hist(z)

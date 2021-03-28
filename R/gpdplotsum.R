@@ -9,7 +9,7 @@
 #' @references De Sousa, Bruno and Michailidis, George (2004). A diagnostic plot for estimating the tail index of a distribution. \emph{Journal of Computational and Graphical Statistics} \bold{13(4)}, 1--22.
 #' @examples
 #' data(danish)
-#' sumplot(danish)
+#' gpd.plot.sum(danish)
 #' @export
 gpd.plot.sum=function (data, kmin = 5){
 
