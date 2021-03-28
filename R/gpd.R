@@ -1,9 +1,3 @@
-findthresh <- function(data, ne) {
-  data <- rev(sort(as.numeric(data)))
-  data[ne] - min(min(abs(diff(data))[abs(diff(data)) > 0]), 1e-6)
-}
-
-
 #' Parameter estimation for the Generalized Pareto Distribution (GPD)
 #'
 #' Fits exceedances above a chosen threshold to the Generalized Pareto model. Various estimation procedures can be used,

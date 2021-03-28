@@ -1,4 +1,4 @@
-#' gpd stuff
+#' Generalised Pareto Distribution (GPD)
 
 #' Density, distribution function, quantile function and random number generation
 #' for the Generalized Pareto distribution with location, scale, and shape
@@ -195,6 +195,73 @@ rgpd = function(n, loc = 0, scale = 1, shape = 0) {
 
   # run quantilefunction and return
   qgpd(stats::runif(n), loc, scale, shape)
+}
+
+#' @rdname gpd
+#' @export
+experimental.dgpd = function(x, loc = 0, scale = 1, shape = 0, log.d = FALSE) {
+  # density of the gpd
+
+  # if any scale negative, throw error
+  if(min(scale) <= 0)
+    stop("Invalid scale")
+
+  # check shape
+  cond1 = (length(x) > 1) &
+    (((length(loc) != length(x)) & (length(loc) != 1)) |
+       ((length(scale) != length(x)) & (length(scale) != 1)) |
+       ((length(shape) != length(x)) & (length(shape) != 1)))
+  # check shape again
+  cond2 = (length(x) == 1) &
+    (length(unique(c(length(x), length(loc), length(scale), length(shape)))) > 2)
+
+  # if shape incorrect, throw error
+  if(cond1 | cond2)
+    stop("Invalid parameter length!")
+
+  # if 1-d, reshape
+  if(length(shape) == 1)
+    shape = rep(shape, max(length(x), length(loc), length(scale)))
+
+
+  if (any(is.infinite(x))) warning("infinite quantiles set to NA")
+
+  n = length(x)
+
+  x[is.infinite(x)] = NA # user will have to deal with infinite cases
+
+  x = rep(x, length.out = n)
+  u = rep(loc, length.out = n)
+  sigmau = rep(scale, length.out = n)
+  xi = rep(shape, length.out = n)
+
+  d = x # will pass through NA/NaN as entered
+
+  yu = (x - u)/sigmau # used when shape is zero
+  syu = 1 + xi*yu     # used when shape non-zero
+
+  # check for x values in range
+  yind = ((yu > 0) & (syu > 0))
+
+  d[which(!yind)] = log(0) # zero density is default
+
+  # special case when xi parameter is zero (or close to it)
+  shape0ind = abs(xi) < 1e-6
+  nshape0 = sum(shape0ind)
+
+  if (nshape0 > 0) {
+    whichexp = which(shape0ind & yind)
+    d[whichexp] = -log(sigmau[whichexp]) - yu[whichexp]
+  }
+  if (nshape0 < n) {
+    whichxi = which(!shape0ind & yind)
+    d[whichxi] = -log(sigmau[whichxi]) - (1/xi[whichxi] + 1) * log(syu[whichxi])
+  }
+
+  # return log if required
+  if (!log.d) d = exp(d)
+
+  d
 }
 
 
