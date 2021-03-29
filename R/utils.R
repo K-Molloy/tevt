@@ -46,3 +46,9 @@ pSeqStop = function (p)
   colnames(out) <- c("StrongStop", "ForwardStop", "UnAdjusted")
   out
 }
+
+helphill=function (data, k) {
+  xstat = sort(data, decreasing = TRUE)
+  xihat = mean((log(xstat[1:k]) - log(xstat[k + 1])))
+  xihat
+}
