@@ -107,7 +107,7 @@ gpd.himp = function(data,B=1000,epsilon=0.955){
     xihat
   }
 
-  secorder=gpd.AMSE(data)$second.order.par
+  secorder=gpd.AMSE(data)$sec.order.par
 
   khelp1=2:(n1-1)
   tn1=matrix(nrow=B,ncol=n1-2)
