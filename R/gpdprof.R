@@ -1,5 +1,15 @@
-
-#' GPD Profile Log Likelihood for xi
+#' GPD Profile Log Likelihood for \eqn{\xi}
+#'
+#' Creates \eqn{\xi} profile log liklihood
+#' @param z dataset
+#' @param xlow lower \eqn{\xi} value
+#' @param xup  upper \eqn{\xi} value
+#' @param conf Confidence size \code{default} is set to \code{0.95}
+#' @param nint Number of intervals \code{default} is set to \code{100}
+#' @examples
+#' data(danish)
+#' out = gpd.fit(danish, 10)
+#' gpd.profxi(out, -0.1, 0.2)
 #' @export
 gpd.profxi = function(z, xlow, xup, conf = 0.95, nint = 100){
     cat("If routine fails, try changing plotting interval", fill = TRUE)
@@ -35,6 +45,19 @@ gpd.profxi = function(z, xlow, xup, conf = 0.95, nint = 100){
 
 
 #' GPD Profile Log Likelihood for m year return level
+#'
+#' Creates m year return level plot for profile log liklihood
+#' @param z dataset
+#' @param m number of years
+#' @param xlow lower xi value
+#' @param xup  upper xi value
+#' @param npy number of days in year \code{default} is set to \code{365}
+#' @param conf Confidence size \code{default} is set to \code{0.95}
+#' @param nint Number of intervals \code{default} is set to \code{100}
+#' @examples
+#' data(danish)
+#' out = gpd.fit(danish, 10)
+#' gpd.prof(out, m = 10, 55, 75)
 #' @export
 gpd.prof = function(z, m, xlow, xup, npy = 365, conf = 0.95, nint = 100){
     cat("If routine fails, try changing plotting interval", fill = TRUE)

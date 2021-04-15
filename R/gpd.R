@@ -306,6 +306,15 @@ gpd.fit <- function(data, threshold = NA, nextremes = NA, npp = 365, method = c(
 }
 
 #' GPD Compute mle over a range of u
+#'
+#' @param data dataset
+#' @param umin lower xi value
+#' @param umax  upper xi value
+#' @param nint Number of intervals \code{default} is set to \code{10}
+#' @param ... additional parameters for the gpd fitting function
+#' @examples
+#' data(danish)
+#' gpd.fitu(danish, 0, 20)
 #' @export
 gpd.fitu = function(data, umin, umax, nint = 10, ...){
   m <- s <- up <- ul <- matrix(0, nrow = nint, ncol = 2)

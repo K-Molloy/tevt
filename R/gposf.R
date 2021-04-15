@@ -2,7 +2,8 @@
 #'
 #' An Implementation of the procedure proposed in Drees & Kaufmann (1998) for selecting the optimal sample fraction in tail index estimation.
 #' @param data vector of sample data
-#' @param r tuning parameter for the stopping criterion. \code{default} is set to \code{1}. Change only if recommended by the output.
+#' @param method selected method \code{default} is set to \code{DK}
+#' @param ... extra parameters for respective functions
 #' @details The procedure proposed in Drees & Kaufmann (1998) is based on bias reduction. A stopping criterion with respect to \code{k} is implemented to find the optimal tail fraction, i.e. \code{k/n} with \code{k} the optimal number of upper order statistics. This number, denoted \code{k0} here, is equivalent to the number of extreme values or, if you wish, the number of exceedances in the context of a POT-model like the generalized Pareto distribution. \code{k0} can then be associated with the unknown threshold \code{u} of the GPD by choosing \code{u} as the \code{n-k0}th upper order statistic. If the above mentioned stopping criterion exceedes a certain value \code{r}, the bias of the assumed extreme model has become prominent and therefore \code{k} should not be chosen higher. For more information see references.
 #' @return
 #' \item{second.order.par }{gives an estimation of the second order parameter \code{rho}.}
@@ -40,7 +41,7 @@ gpd.OSF = function(data, method="DK", ...){
 #' @references Drees, H. and Kaufmann, E. (1998). Selecting the optimal sample fraction in univariate extreme value estimation. \emph{Stochastic Processes and their Applications}, \bold{75(2)}, 149--172.
 #' @examples
 #' data(danish)
-#' gpd.OSF(danish)
+#' gpd.OSF(danish, method="DK")
 DK = function(data,r=1){
     n=length(data)
 
@@ -100,7 +101,7 @@ DK = function(data,r=1){
 #' @references Guillou, A. and Hall, P. (2001). A Diagnostic for Selecting the Threshold in Extreme Value Analysis. \emph{Journal of the Royal Statistical Society}, \bold{63(2)}, 293--305.
 #' @examples
 #' data(danish)
-#' GH(danish)
+#' gpd.OSF(danish, method="GH")
 GH = function(data){
     n=length(data)
 
@@ -158,7 +159,7 @@ GH = function(data){
 #' @references Gomes, M.I. and Henriques-Rodrigues, L. and Miranda, M.C. (2011). Reduced-bias location-invariant extreme value index estimation: a simulation study. \emph{Communications in Statistic-Simulation and Computation}, \bold{40}, 424--447.
 #' @examples
 #' data(danish)
-#' PS(danish)
+#' gpd.OSF(danish, method="PS")
 PS = function(data,j=1){
     n=length(data)
     x1=sort(data, decreasing=TRUE)
@@ -207,9 +208,8 @@ PS = function(data,j=1){
 #' @references Reiss, R.-D. and Thomas, M. (2007). Statistical Analysis of Extreme Values: With Applications to Insurance, Finance, Hydrology and Other Fields. \emph{Birkhauser, Boston}.
 #' @examples
 #' data(danish)
-#' RT(danish)
-RT <-
-  function(data,beta=0,kmin=2){
+#' gpd.OSF(danish, method="RT")
+RT = function(data,beta=0,kmin=2){
     n=length(data)
 
     x1=sort(data, decreasing=TRUE)
