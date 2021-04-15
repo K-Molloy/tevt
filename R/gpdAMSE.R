@@ -75,7 +75,7 @@ gpd.AMSE = function(data){
     k0=floor((Z/N)^Exp)
     u=xstat[k0]
     ti=1/helphill(k0)
-    list=list(second.order.par=c(beta,rho),k0=k0,threshold=u,tail.index=ti)
+    list=list(sec.order.par=c(beta,rho),k0=k0,threshold=u,tail.index=ti)
 
     list
   }
